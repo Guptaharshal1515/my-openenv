@@ -3,17 +3,14 @@ import requests
 from openai import OpenAI
 
 # Environment variables
-API_BASE_URL = os.getenv(
-    "API_BASE_URL",
-    "https://guptaharshal1515-my-env.hf.space"
-)
+API_BASE_URL = os.getenv("API_BASE_URL")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN")
+API_KEY = os.getenv("API_KEY")
 
 # OpenAI client (required by rules)
 client = OpenAI(
     base_url=API_BASE_URL,
-    api_key=HF_TOKEN
+    api_key=API_KEY
 )
 
 print(f"[START] task=finance env=simple model={MODEL_NAME}")
