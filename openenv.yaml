@@ -9,7 +9,10 @@ entrypoint:
 tasks:
   - id: easy
     description: Maintain balance above 900
+    grader: graders.grade_easy
   - id: medium
     description: Increase balance above 1100
+    grader: graders.grade_medium
   - id: hard
     description: Maximize balance over time
+    grader: graders.grade_hard

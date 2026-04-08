@@ -1,8 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from server.environment import SimpleEnv
 
 app = FastAPI()
 env = SimpleEnv()
+
+
+class StepRequest(BaseModel):
+    action: str
 
 
 @app.get("/health")
@@ -15,7 +20,7 @@ def reset():
     obs = env.reset()
     return {
         "observation": obs,
-        "reward": 0,
+        "reward": 0.0,
         "done": False
     }
 
@@ -26,8 +31,12 @@ def reset_get():
 
 
 @app.post("/step")
-def step(action: dict):
-    obs, reward, done = env.step(action.get("action", "save"))
+def step(req: StepRequest):
+    try:
+        obs, reward, done = env.step(req.action)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     return {
         "observation": obs,
         "reward": reward,

@@ -1,5 +1,5 @@
 [project]
-name = "my-openv"
+name = "my-openenv"
 version = "0.1.0"
 description = "Simple financial RL environment"
 authors = [

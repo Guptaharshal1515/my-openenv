@@ -2,99 +2,88 @@ import os
 import requests
 from openai import OpenAI
 
-# Environment variables
 API_BASE_URL = os.getenv("API_BASE_URL")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 API_KEY = os.getenv("API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+SERVER_URL = os.getenv("SERVER_URL", "http://localhost:7860")
 
-# OpenAI client (required by rules)
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=API_KEY
-)
-
-print(f"[START] task=finance env=simple model={MODEL_NAME}")
-
-# Reset environment
-reset_response = requests.post(f"{API_BASE_URL}/reset").json()
-
-done = False
-step = 0
-total_reward = 0
-
-# RL loop
-while not done and step < 10:
-    step += 1
+client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
 
-    from openai import OpenAI
-    import os
-    import requests
+def call_env(method, endpoint, payload=None):
+    url = f"{SERVER_URL}{endpoint}"
+    if method == "POST":
+        response = requests.post(url, json=payload, timeout=20)
+    else:
+        response = requests.get(url, timeout=20)
+    response.raise_for_status()
+    return response.json()
 
-    API_BASE_URL = os.getenv("API_BASE_URL")
-    API_KEY = os.getenv("API_KEY")
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
-    SERVER_URL = os.getenv("SERVER_URL", "http://localhost:7860")
+def choose_action(observation):
+    prompt = (
+        "You are choosing one action for a simple finance environment. "
+        f"Current state: {observation}. "
+        "Return exactly one token from: save, spend, invest."
+    )
 
-    def call_api(method, endpoint, **kwargs):
-        url = f"{SERVER_URL}{endpoint}"
-        try:
-            if method == "post":
-                r = requests.post(url, json=kwargs.get("json"))
-            else:
-                r = requests.get(url)
-            r.raise_for_status()
-            return r.json()
-        except Exception as e:
-            return None
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+    )
 
-    def choose_action_llm(observation):
-        prompt = f"Given the state {observation}, choose one action: save, spend, or invest. Only reply with the action."
-        try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            action = response.choices[0].message.content.strip().lower()
-            if action not in ["save", "spend", "invest"]:
-                action = "save"
-            return action
-        except Exception:
-            return "save"
+    action = (response.choices[0].message.content or "").strip().lower()
+    if action not in {"save", "spend", "invest"}:
+        action = "save"
+    return action
 
-    def main():
-        model = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
-        print(f"[START] task=finance env=simple model={model}")
 
-        resp = call_api("post", "/reset")
-        if not resp:
-            print(f"[STEP] step=0 action=reset reward=0 done=False error=reset_failed")
-            print(f"[END] success=False steps=0 score=0 rewards=0")
-            return
+def main():
+    print(f"[START] task=finance env=simple model={MODEL_NAME}")
 
-        obs = resp["observation"]
-        reward = resp["reward"]
-        done = resp["done"]
-        total_reward = 0
-        steps = 0
+    steps = 0
+    total_reward = 0.0
+    done = False
+    score = 0
 
-        for step in range(1, 11):
-            action = choose_action_llm(obs)
-            resp = call_api("post", "/step", json={"action": action})
-            if not resp or "error" in resp:
-                print(f"[STEP] step={step} action={action} reward=0 done=False error={resp.get('error') if resp else 'step_failed'}")
-                break
-            reward = resp["reward"]
-            done = resp["done"]
-            obs = resp["observation"]
-            total_reward += reward
-            print(f"[STEP] step={step} action={action} reward={reward} done={done} error=None")
+    try:
+        reset_result = call_env("POST", "/reset")
+        observation = reset_result["observation"]
+
+        while not done and steps < 10:
             steps += 1
-            if done:
+            action = choose_action(observation)
+            error = None
+
+            try:
+                step_result = call_env("POST", "/step", {"action": action})
+                observation = step_result["observation"]
+                reward = float(step_result["reward"])
+                done = bool(step_result["done"])
+                score = int(observation.get("balance", 0))
+                total_reward += reward
+                print(
+                    f"[STEP] step={steps} action={action} reward={reward} done={done} error={error}"
+                )
+            except Exception as exc:
+                reward = 0.0
+                done = False
+                error = str(exc)
+                print(
+                    f"[STEP] step={steps} action={action} reward={reward} done={done} error={error}"
+                )
                 break
 
-        print(f"[END] success={done} steps={steps} score={obs['balance']} rewards={total_reward}")
+        success = done
+        print(
+            f"[END] success={success} steps={steps} score={score} rewards={total_reward}"
+        )
 
-    if __name__ == "__main__":
-        main()
+    except Exception as exc:
+        print(f"[STEP] step=1 action=save reward=0.0 done=False error={exc}")
+        print("[END] success=False steps=0 score=0 rewards=0.0")
+
+
+if __name__ == "__main__":
+    main()
