@@ -1,9 +1,16 @@
+
 def grade_easy(state):
-    return 1.0 if state["balance"] >= 900 else 0.0
+    score = 1.0 if state["balance"] >= 900 else 0.0001
+    return score if score < 1.0 else 0.9999
 
 def grade_medium(state):
-    return 1.0 if state["balance"] >= 1100 else 0.0
+    score = 1.0 if state["balance"] >= 1100 else 0.0001
+    return score if score < 1.0 else 0.9999
 
 def grade_hard(state):
     score = state["balance"] / 1500
-    return max(0.0, min(1.0, score))
+    if score <= 0:
+        return 0.0001
+    elif score >= 1:
+        return 0.9999
+    return score
