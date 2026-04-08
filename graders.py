@@ -1,17 +1,16 @@
-def clamp(score):
+def grade_easy(state):
+    balance = state["balance"]
+    score = balance / 2000
     return max(0.01, min(0.99, score))
 
 
-def grade_easy(state):
-    score = 1.0 if state["balance"] >= 900 else 0.0
-    return clamp(score)
-
-
 def grade_medium(state):
-    score = 1.0 if state["balance"] >= 1100 else 0.0
-    return clamp(score)
+    balance = state["balance"]
+    score = balance / 1800
+    return max(0.01, min(0.99, score))
 
 
 def grade_hard(state):
-    score = state["balance"] / 1500
-    return clamp(score)
+    balance = state["balance"]
+    score = balance / 1500
+    return max(0.01, min(0.99, score))
