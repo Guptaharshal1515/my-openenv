@@ -1,5 +1,5 @@
 ---
-title: Meta OpenEnv Rakshak
+title: My OpenEnv
 emoji: 🚀
 colorFrom: blue
 colorTo: green

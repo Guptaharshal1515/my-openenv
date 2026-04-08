@@ -1,0 +1,13 @@
+[project]
+name = "my-openv"
+version = "0.1.0"
+description = "Simple financial RL environment using OpenEnv"
+authors = [
+    { name="Harshal Gupta", email="guptaharshal1515@gmail.com" }
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "requests",
+    "openai"
+]
